@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 source <(curl -s https://raw.githubusercontent.com/tteck/Proxmox/main/misc/build.func)
-# Copyright (c) 2021-2024 tteck
-# Author: tteck (tteckster)
-# License: MIT
-# https://github.com/tteck/Proxmox/raw/main/LICENSE
 
 function header_info {
 clear
@@ -18,6 +14,7 @@ EOF
 }
 header_info
 echo -e "Loading..."
+
 APP="Traefik"
 var_disk="2"
 var_cpu="1"
@@ -52,16 +49,23 @@ function default_settings() {
   echo_default
 }
 
+function build_container() {
+  msg_info "Creating $APP LXC"
+  pct create $CT_ID local:vztmpl/debian-12-standard_12.2-1_amd64.tar.zst \
+    --hostname $HN \
+    --net0 name=eth0,bridge=$BRG,ip=$NET,gw=$GATE \
+    --memory $RAM_SIZE \
+    --cores $CORE_COUNT \
+    --storage local \
+    --rootfs local:$DISK_SIZE
+  msg_ok "$APP LXC Created"
+}
+
 function update_script() {
 header_info
-if [[ ! -f /etc/systemd/system/traefik.service ]]; then 
-  msg_error "No ${APP} Installation Found!"
-  exit
-fi
-
+if [[ ! -f /etc/systemd/system/traefik.service ]]; then msg_error "No ${APP} Installation Found!"; exit; fi
 RELEASE=$(curl -s https://api.github.com/repos/traefik/traefik/releases | grep -oP '"tag_name":\s*"v\K[\d.]+?(?=")' | sort -V | tail -n 1)
 msg_info "Updating $APP LXC"
-
 if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
   wget -q https://github.com/traefik/traefik/releases/download/v${RELEASE}/traefik_v${RELEASE}_linux_amd64.tar.gz
   tar -C /tmp -xzf traefik*.tar.gz
@@ -81,4 +85,4 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${APP} should be reachable by going to the following URL.
-         ${BL}http://192.168.10.6:8080${CL} \n"
+         ${BL}http://${NET%/*}:8080${CL} \n"
