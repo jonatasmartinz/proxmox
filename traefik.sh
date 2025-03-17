@@ -38,7 +38,7 @@ function default_settings() {
   RAM_SIZE="$var_ram"
   BRG="vmbr2"
   NET="192.168.10.6/24"
-  GATE=""
+  GATE="192.168.10.1"
   APT_CACHER=""
   APT_CACHER_IP=""
   DISABLEIP6="no"
@@ -54,9 +54,14 @@ function default_settings() {
 
 function update_script() {
 header_info
-if [[ ! -f /etc/systemd/system/traefik.service ]]; then msg_error "No ${APP} Installation Found!"; exit; fi
+if [[ ! -f /etc/systemd/system/traefik.service ]]; then 
+  msg_error "No ${APP} Installation Found!"
+  exit
+fi
+
 RELEASE=$(curl -s https://api.github.com/repos/traefik/traefik/releases | grep -oP '"tag_name":\s*"v\K[\d.]+?(?=")' | sort -V | tail -n 1)
 msg_info "Updating $APP LXC"
+
 if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
   wget -q https://github.com/traefik/traefik/releases/download/v${RELEASE}/traefik_v${RELEASE}_linux_amd64.tar.gz
   tar -C /tmp -xzf traefik*.tar.gz
@@ -76,4 +81,4 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${APP} should be reachable by going to the following URL.
-         ${BL}http://${IP}:8080${CL} \n"
+         ${BL}http://192.168.10.6:8080${CL} \n"
